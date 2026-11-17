@@ -85,7 +85,8 @@ class NucleoTest {
         s.depositar("1", 100_000);
         s.retirar("1", ana.getMonederoPrincipal().getId(), 20_000);
         s.transferir("1", "2", 30_000);
-        assertEquals(50_000, ana.getSaldoTotal(), 0.001);
+        // 100 000 - 20 000 - 190 (retiro, rango Plata 5%) - 30 000 - 270 (transferencia, rango Oro 10%)
+        assertEquals(49_540, ana.getSaldoTotal(), 0.001);
         assertEquals(30_000, beto.getSaldoTotal(), 0.001);
         assertEquals(3, ana.getMonederoPrincipal().getHistorial().getTamanio());
         assertEquals(1, beto.getMonederoPrincipal().getHistorial().getTamanio());
@@ -137,7 +138,8 @@ class NucleoTest {
         assertThrows(OperacionInvalidaException.class, () -> s.revertirUltima("1"));
         // La transferencia sigue en la pila y nada cambió
         assertEquals(1 + 1, ana.getPilaReversion().getTamanio());
-        assertEquals(10_000, beto.getSaldoTotal(), 0.001);
+        // 50 000 recibidos - 40 000 - 400 (retiro de Beto, rango Bronce 1%)
+        assertEquals(9_600, beto.getSaldoTotal(), 0.001);
     }
 
     // ---------------- integridad ----------------

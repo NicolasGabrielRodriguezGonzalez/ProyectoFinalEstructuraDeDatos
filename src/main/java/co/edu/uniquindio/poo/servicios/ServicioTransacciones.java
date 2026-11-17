@@ -114,6 +114,7 @@ public class ServicioTransacciones {
         if (t.getOrigen() != null) t.getOrigen().quitarEfecto(t);
         if (destino != null) destino.quitarEfecto(t);
         t.marcarRevertida();
+        analisis.revertir(t);   // Descuenta la transacción de los grafos y totales de reportes
         if (!t.esInterna()) puntos.revertir(t);
         return t;
     }

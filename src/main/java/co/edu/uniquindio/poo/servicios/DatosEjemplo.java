@@ -1,5 +1,9 @@
 package co.edu.uniquindio.poo.servicios;
 
+import java.time.LocalDate;
+import co.edu.uniquindio.poo.modelo.TipoTransaccion;
+import co.edu.uniquindio.poo.modelo.TransaccionProgramada.Periodicidad;
+
 /** Carga unos 10 clientes con movimientos para la demo y los reportes. */
 public final class DatosEjemplo {
 
@@ -38,5 +42,21 @@ public final class DatosEjemplo {
         s.depositar("1004", 40_000);
         s.depositar("1009", 110_000);
         s.transferir("1009", "1002", 25_000);
+
+        // Transacciones programadas de ejemplo
+        LocalDate hoy = s.getFechaSimulada();
+        String principalAna = s.buscarCliente("1001").getMonederoPrincipal().getId();
+        String principalBeto = s.buscarCliente("1002").getMonederoPrincipal().getId();
+
+        // Depósito mensual de Ana (sin origen; el destino es su monedero principal)
+        s.programar("1001", TipoTransaccion.DEPOSITO, null, null, principalAna,
+                50_000, "Ingreso", hoy.plusDays(2), Periodicidad.MENSUAL);
+
+        // Transferencia única de Ana a Beto
+        s.programar("1001", TipoTransaccion.TRANSFERENCIA, principalAna, "1002", principalBeto,
+                20_000, "Servicios", hoy.plusDays(3), Periodicidad.UNICA);
+
+        // Genera recordatorios para lo que vence en los próximos 3 días
+        s.generarRecordatorios(3);
     }
 }
