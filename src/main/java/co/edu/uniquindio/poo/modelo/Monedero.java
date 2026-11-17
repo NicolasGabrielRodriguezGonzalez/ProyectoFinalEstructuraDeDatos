@@ -9,7 +9,6 @@ import co.edu.uniquindio.poo.estructuras.ListaDoble;
 public class Monedero {
 
     private static int contador = 0;
-
     private final String id;
     private final String nombre;
     private final Cliente duenio;

@@ -7,6 +7,13 @@ import co.edu.uniquindio.poo.estructuras.ListaDoble;
 import co.edu.uniquindio.poo.modelo.Cliente;
 import co.edu.uniquindio.poo.modelo.Monedero;
 import co.edu.uniquindio.poo.modelo.Transaccion;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import co.edu.uniquindio.poo.modelo.Notificacion;
+import co.edu.uniquindio.poo.modelo.TipoTransaccion;
+import co.edu.uniquindio.poo.modelo.TransaccionProgramada;
+import co.edu.uniquindio.poo.modelo.TransaccionProgramada.Periodicidad;
 
 /**
  * Fachada única del sistema. La GUI solo habla con esta clase.
@@ -28,6 +35,8 @@ public class SistemaMonedero {
     private final ServicioAnalisis analisis = new ServicioAnalisis();
     private final ServicioTransacciones transacciones =
             new ServicioTransacciones(clientes, puntos, alertas, analisis);
+    private final ServicioProgramadas programadas = new ServicioProgramadas(transacciones, alertas);
+    public static final double UMBRAL_SALDO_BAJO = ServicioTransacciones.UMBRAL_SALDO_BAJO;
 
     // ===================================================================
     // Clientes
@@ -168,6 +177,86 @@ public class SistemaMonedero {
         }
         return resultados;
     }
+
+    // ===================================================================
+    // Programadas, alertas y análisis (Persona 3)
+    // ===================================================================
+
+    public ServicioProgramadas getProgramadas() { return programadas; }
+
+    /**
+     * DEPOSITO: idMonederoOrigen = null, destino = idMonederoDestino (idClienteDestino null means the same client).
+     * RETIRO: origen = idMonederoOrigen, destino = null.
+     * TRANSFERENCIA: origen and destino both set; idClienteDestino is the other client.
+     */
+    public TransaccionProgramada programar(String idCliente, TipoTransaccion tipo,
+                                           String idMonederoOrigen, String idClienteDestino,
+                                           String idMonederoDestino, double monto, String categoria,
+                                           LocalDate fecha, Periodicidad periodicidad) {
+        Cliente c = clienteObligatorio(idCliente);
+        Monedero origen = idMonederoOrigen == null ? null : buscarMonedero(idCliente, idMonederoOrigen);
+        Monedero destino = idMonederoDestino == null ? null
+                : buscarMonedero(idClienteDestino == null ? idCliente : idClienteDestino, idMonederoDestino);
+        return programadas.programar(c, tipo, origen, destino, monto, categoria, fecha, periodicidad);
+    }
+
+    public List<TransaccionProgramada> listarProgramadas(String idCliente) {
+        return programadas.pendientesDe(clienteObligatorio(idCliente));
+    }
+
+    public boolean cancelarProgramada(String idCliente, String idProgramada) {
+        return programadas.cancelar(clienteObligatorio(idCliente), idProgramada);
+    }
+
+    public List<String> avanzarDias(int dias) { return programadas.avanzarDias(dias); }
+
+    public int generarRecordatorios(int diasAnticipacion) {
+        return programadas.generarRecordatorios(diasAnticipacion);
+    }
+
+    public LocalDate getFechaSimulada() { return programadas.getFechaSimulada(); }
+
+    public List<Notificacion> getNotificaciones(String idCliente) {
+        return alertas.getNotificaciones(clienteObligatorio(idCliente));
+    }
+
+    public List<Notificacion> procesarNotificaciones() { return alertas.procesarPendientes(); }
+
+    public void asignarCategoria(String idTransaccion, String categoria) {
+        analisis.asignarCategoria(idTransaccion, categoria);
+    }
+
+    // ---- Reportes ----
+
+    public Optional<Map.Entry<String, Double>> categoriaConMayorGasto() {
+        return analisis.categoriaConMayorGasto();
+    }
+
+    public Map<String, Double> gastoPorCategoria() { return analisis.getGastoPorCategoria(); }
+
+    public Optional<Map.Entry<String, Double>> clienteQueMasTransfiere() {
+        return analisis.clienteQueMasTransfiere();
+    }
+
+    public Optional<Map.Entry<String, Double>> clienteQueMasRecibe() {
+        return analisis.clienteQueMasRecibe();
+    }
+
+    public List<String> conexionesDe(String idCliente) {
+        return analisis.conexionesDeCliente(clienteObligatorio(idCliente).getId());
+    }
+
+    public List<String> recorridoDfsDe(String idCliente) {
+        return analisis.recorridoDfsCliente(clienteObligatorio(idCliente).getId());
+    }
+
+    public boolean hayCiclosEnTransferencias() { return analisis.hayCiclosEnTransferencias(); }
+
+    public List<String> monederosConectados(String idCliente, String idMonedero) {
+        return analisis.monederosConectados(buscarMonedero(idCliente, idMonedero).getId());
+    }
+
+    public List<String> transicionesCategorias() { return analisis.transicionesCategorias(); }
 
     // ===================================================================
     // Acceso a los servicios de Personas 2 y 3
